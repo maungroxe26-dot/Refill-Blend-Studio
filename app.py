@@ -1,74 +1,58 @@
 import streamlit as st
 import pandas as pd
 
-# Konfigurasi Halaman
-st.set_page_config(page_title="Refill Blend Studio", page_icon="🧪", layout="wide")
+st.set_page_config(page_title="Refill Blend Studio", layout="wide")
 
-# Inisialisasi State (Inventaris & Pustaka)
+# DATABASE AI (Sederhana)
+DB_NOTES = {
+    "Vanilla": {"top": "-", "mid": "Vanilla Orchid", "base": "Vanilla Bean", "vibe": "Manis/Cozy"},
+    "Rose": {"top": "Bergamot", "mid": "Rose", "base": "White Musk", "vibe": "Feminin/Anggun"},
+    "Sandalwood": {"top": "Cardamom", "mid": "Sandalwood", "base": "Amber", "vibe": "Maskulin/Earthy"}
+}
+
+# Inisialisasi State
 if 'inventaris_bahan' not in st.session_state:
     st.session_state.inventaris_bahan = [
-        {"Nama Bahan": "Sweet Vanilla", "Merk": "Parfex", "Tipe": "Bibit", "Harga per ml (Rp)": 1800},
-        {"Nama Bahan": "Absolute Alkohol", "Merk": "-", "Tipe": "Pelarut", "Harga per ml (Rp)": 100}
+        {"Nama Bahan": "Vanilla", "Tipe": "Bibit", "Harga per ml (Rp)": 2000},
+        {"Nama Bahan": "Rose", "Tipe": "Bibit", "Harga per ml (Rp)": 2500},
+        {"Nama Bahan": "Sandalwood", "Tipe": "Bibit", "Harga per ml (Rp)": 3000},
+        {"Nama Bahan": "Alkohol", "Tipe": "Pelarut", "Harga per ml (Rp)": 100}
     ]
-if 'pustaka_racikan' not in st.session_state:
-    st.session_state.pustaka_racikan = pd.DataFrame(columns=["Nama Parfum", "Total Volume", "Rasio Bibit", "Komposisi"])
 
-# Header
-st.title("🧪 Refill Blend Studio")
-tab1, tab2, tab3 = st.tabs(["🧮 Kalkulator Formula", "📦 Inventaris Bahan", "📚 Pustaka Racikan"])
+tab1, tab2 = st.tabs(["🧮 Racik & Analisis AI", "📦 Inventaris"])
 
-# ==================== TAB 1: KALKULATOR & SIMPAN ====================
 with tab1:
-    st.header("Racikan Formula Baru")
+    st.header("Racik Parfum Multi-Bibit")
+    nama_parfum = st.text_input("Nama Parfum")
+    vol_total = st.number_input("Total Volume (ml)", value=30)
     
-    # Input Identitas
-    nama_parfum = st.text_input("Nama Parfum Racikan", value="Racikan Baru")
-    target_volume = st.number_input("Target Total Volume (ml)", min_value=5, max_value=500, value=30, step=5)
+    # Pilih Bibit (Multi-select)
+    pilihan_bibit = st.multiselect("Pilih Bibit (Bisa lebih dari 1)", [b["Nama Bahan"] for b in st.session_state.inventaris_bahan if b["Tipe"]=="Bibit"])
     
-    opsi_konsentrasi = {"EDP (50% Bibit)": 0.50, "Extrait (60% Bibit)": 0.60}
-    pilihan_tipe = st.selectbox("Pilih Tipe Konsentrasi", list(opsi_konsentrasi.keys()))
-    rasio_bibit = opsi_konsentrasi[pilihan_tipe]
+    if pilihan_bibit:
+        # Input volume per bibit
+        vol_per_bibit = vol_total * 0.6 / len(pilihan_bibit) # Default 60% bibit dibagi rata
+        total_biaya_bibit = 0
+        notes_list = []
+        
+        st.write("---")
+        for b in pilihan_bibit:
+            harga = [x["Harga per ml (Rp)"] for x in st.session_state.inventaris_bahan if x["Nama Bahan"]==b][0]
+            total_biaya_bibit += (vol_per_bibit * harga)
+            if b in DB_NOTES: notes_list.append(DB_NOTES[b])
+            st.write(f"Bibit: {b} | Volume: {vol_per_bibit:.1f} ml")
 
-    # Hitung Otomatis
-    ml_bibit_total = int(target_volume * rasio_bibit)
-    ml_pelarut_total = target_volume - ml_bibit_total
+        # Analisis AI Sederhana
+        st.info("🧠 AI Olfactory Analysis: Notes akan muncul di sini berdasarkan database.")
+        
+        # Kalkulasi HPP
+        harga_botol = 5000
+        total_hpp = total_biaya_bibit + harga_botol
+        st.subheader("📊 Estimasi Harga")
+        col1, col2 = st.columns(2)
+        col1.metric("Total HPP", f"Rp {total_hpp:,.0f}")
+        col2.metric("Rekomendasi Harga Jual (Profit 100%)", f"Rp {total_hpp*2:,.0f}")
 
-    # Input Dinamis (Sederhana untuk demo)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info(f"Bibit: {ml_bibit_total} ml")
-        bahan_bibit = st.selectbox("Pilih Bibit Utama", [b["Nama Bahan"] for b in st.session_state.inventaris_bahan if b["Tipe"]=="Bibit"])
-    with col2:
-        st.info(f"Pelarut: {ml_pelarut_total} ml")
-        bahan_pelarut = st.selectbox("Pilih Pelarut", [p["Nama Bahan"] for p in st.session_state.inventaris_bahan if p["Tipe"]=="Pelarut"])
-
-    # Tombol Simpan
-    if st.button("💾 Simpan ke Pustaka Racikan"):
-        data_baru = {
-            "Nama Parfum": nama_parfum,
-            "Total Volume": f"{target_volume} ml",
-            "Rasio Bibit": pilihan_tipe,
-            "Komposisi": f"{bahan_bibit} & {bahan_pelarut}"
-        }
-        st.session_state.pustaka_racikan = pd.concat([st.session_state.pustaka_racikan, pd.DataFrame([data_baru])], ignore_index=True)
-        st.success(f"Racikan '{nama_parfum}' berhasil disimpan!")
-
-# ==================== TAB 2: INVENTARIS ====================
 with tab2:
-    st.header("Manajemen Inventaris")
-    edited_bahan = st.data_editor(
-        pd.DataFrame(st.session_state.inventaris_bahan),
-        num_rows="dynamic", use_container_width=True
-    )
-    st.session_state.inventaris_bahan = edited_bahan.to_dict('records')
-
-# ==================== TAB 3: PUSTAKA RACIKAN ====================
-with tab3:
-    st.header("📚 Pustaka Racikan Anda")
-    if not st.session_state.pustaka_racikan.empty:
-        st.dataframe(st.session_state.pustaka_racikan, use_container_width=True)
-        if st.button("🧹 Hapus Semua Pustaka"):
-            st.session_state.pustaka_racikan = pd.DataFrame(columns=["Nama Parfum", "Total Volume", "Rasio Bibit", "Komposisi"])
-            st.rerun()
-    else:
-        st.write("Belum ada racikan yang disimpan.")
+    st.header("Inventaris")
+    st.session_state.inventaris_bahan = st.data_editor(pd.DataFrame(st.session_state.inventaris_bahan), num_rows="dynamic").to_dict('records')
