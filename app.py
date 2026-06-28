@@ -75,11 +75,9 @@ def analisis_aroma_racikan(list_info_bibit):
     terdeteksi = False
     
     for bibit in list_info_bibit:
-        # Pengecekan aman jika user mengosongkan sel merk/nama di data editor
         nama_lower = str(bibit.get("nama", "")).lower()
         merk_lower = str(bibit.get("merk", "")).lower()
         
-        # 1. Analisis Karakter Wangi
         for kunci, data in DATABASE_AROMA_AI.items():
             if kunci in nama_lower:
                 top_notes.update(data["top"])
@@ -88,7 +86,6 @@ def analisis_aroma_racikan(list_info_bibit):
                 vibes.add(data["vibe"])
                 terdeteksi = True
                 
-        # 2. Analisis Pengaruh Merk Pabrikan
         for merk_kunci, deskripsi in DATABASE_MERK_AI.items():
             if merk_kunci in merk_lower:
                 catatan_merk.add(deskripsi)
@@ -104,7 +101,7 @@ def analisis_aroma_racikan(list_info_bibit):
         "catatan_merk": list(catatan_merk)
     }
 
-# Inisialisasi Database Umum bawaan aplikasi (Sudah dilengkapi Kolom Merk)
+# Inisialisasi Database Umum bawaan aplikasi
 if 'inventaris_bahan' not in st.session_state:
     st.session_state.inventaris_bahan = [
         {"Nama Bahan": "Sweet Vanilla (Gourmand)", "Merk": "Parfex", "Tipe": "Bibit", "Harga per ml (Rp)": 1800},
@@ -138,7 +135,6 @@ with tab1:
         nama_varian = st.text_input("Nama Varian / Kode Racikan", value="Racikan No. 01")
     with col_var2:
         df_kemasan = pd.DataFrame(st.session_state.inventaris_kemasan)
-        # Menghindari error jika tabel kemasan kosong
         if not df_kemasan.empty and "Nama Kemasan" in df_kemasan.columns:
             pilihan_kemasan = st.selectbox("Pilih Botol & Kemasan", df_kemasan["Nama Kemasan"].tolist())
             harga_kemasan = df_kemasan[df_kemasan["Nama Kemasan"] == pilihan_kemasan]["Harga Satuan (Rp)"].values[0]
@@ -160,11 +156,11 @@ with tab1:
 
     col_vol1, col_vol2 = st.columns(2)
     with col_vol1:
-        target_volume = st.number_input("Target Total Volume Parfum (ml)", min_value=5.0, max_value=500.0, value=30.0, step=5.0)
+        # Nilai target volume diubah jadi integer (bilangan bulat)
+        target_volume = st.number_input("Target Total Volume Parfum (ml)", min_value=5, max_value=500, value=30, step=5)
 
     df_bahan = pd.DataFrame(st.session_state.inventaris_bahan)
     
-    # Menghindari error jika tabel bahan kosong
     if not df_bahan.empty and "Tipe" in df_bahan.columns and "Nama Bahan" in df_bahan.columns:
         list_bibit = df_bahan[df_bahan["Tipe"] == "Bibit"]["Nama Bahan"].tolist()
         list_pelarut = df_bahan[df_bahan["Tipe"] == "Pelarut"]["Nama Bahan"].tolist()
@@ -181,17 +177,17 @@ with tab1:
     if not list_bibit or not list_pelarut:
         st.error("⚠️ Data Bibit atau Pelarut di Tab Inventaris kosong/tidak lengkap. Silakan isi terlebih dahulu.")
     else:
-        # LOGIKA MODE OTOMATIS
         if rasio_bibit_otomatis is not None:
             st.success(f"Mode Otomatis Aktif! Rasio dikunci untuk: {pilihan_tipe}")
-            ml_bibit_total = target_volume * rasio_bibit_otomatis
-            ml_pelarut_total = target_volume * (1.0 - rasio_bibit_otomatis)
+            # Dikonversi menjadi integer agar hitungannya bulat
+            ml_bibit_total = int(target_volume * rasio_bibit_otomatis)
+            ml_pelarut_total = target_volume - ml_bibit_total
 
             col_auto1, col_auto2 = st.columns(2)
             with col_auto1:
-                st.write(f"**Alokasi Bibit Parfum (Total: {ml_bibit_total:.1f} ml):**")
+                st.write(f"**Alokasi Bibit Parfum (Total: {ml_bibit_total} ml):**")
                 jumlah_layer_bibit = st.number_input("Berapa jenis bibit parfum yang dicampur?", min_value=1, max_value=5, value=1, key="count_bibit")
-                vol_per_bibit = ml_bibit_total / jumlah_layer_bibit
+                vol_per_bibit = int(ml_bibit_total / jumlah_layer_bibit)
                 
                 for i in range(int(jumlah_layer_bibit)):
                     col_sub1, col_sub2 = st.columns([2, 1])
@@ -200,7 +196,8 @@ with tab1:
                         merk_pilihan = df_bahan[df_bahan["Nama Bahan"] == bibit_pilihan]["Merk"].values[0]
                         info_bibit_terpakai.append({"nama": bibit_pilihan, "merk": merk_pilihan})
                     with col_sub2:
-                        vol_bibit = st.number_input(f"Volume (ml)", min_value=0.0, max_value=target_volume, value=vol_per_bibit, step=0.5, key=f"auto_vol_bibit_{i}")
+                        # Nilai input volume diubah jadi integer
+                        vol_bibit = st.number_input(f"Volume (ml)", min_value=0, max_value=int(target_volume), value=vol_per_bibit, step=1, key=f"auto_vol_bibit_{i}")
                     
                     harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == bibit_pilihan]["Harga per ml (Rp)"].values[0]
                     racikan_user.append({
@@ -209,16 +206,17 @@ with tab1:
                     })
 
             with col_auto2:
-                st.write(f"**Alokasi Pelarut (Total: {ml_pelarut_total:.1f} ml):**")
+                st.write(f"**Alokasi Pelarut (Total: {ml_pelarut_total} ml):**")
                 jumlah_layer_pelarut = st.number_input("Berapa jenis cairan pelarut?", min_value=1, max_value=3, value=1, key="count_pelarut")
-                vol_per_pelarut = ml_pelarut_total / jumlah_layer_pelarut
+                vol_per_pelarut = int(ml_pelarut_total / jumlah_layer_pelarut)
                 
                 for j in range(int(jumlah_layer_pelarut)):
                     col_sub3, col_sub4 = st.columns([2, 1])
                     with col_sub3:
                         pelarut_pilihan = st.selectbox(f"Pilih Pelarut {j+1}", list_pelarut, key=f"auto_pelarut_{j}")
                     with col_sub4:
-                        vol_pelarut = st.number_input(f"Volume (ml)", min_value=0.0, max_value=target_volume, value=vol_per_pelarut, step=0.5, key=f"auto_vol_pelarut_{j}")
+                        # Nilai input volume diubah jadi integer
+                        vol_pelarut = st.number_input(f"Volume (ml)", min_value=0, max_value=int(target_volume), value=vol_per_pelarut, step=1, key=f"auto_vol_pelarut_{j}")
                     
                     harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == pelarut_pilihan]["Harga per ml (Rp)"].values[0]
                     racikan_user.append({
@@ -226,7 +224,6 @@ with tab1:
                         "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_pelarut * harga_per_ml
                     })
 
-        # LOGIKA MODE CUSTOM/MANUAL
         else:
             st.info("Mode Manual Aktif. Silakan masukkan bahan dan volume secara bebas.")
             list_nama_all = df_bahan["Nama Bahan"].tolist()
@@ -244,7 +241,8 @@ with tab1:
                     if tipe_bahan == "Bibit":
                         info_bibit_terpakai.append({"nama": bahan_terpilih, "merk": merk_pilihan})
                 with col_b2:
-                    vol_terpilih = st.number_input(f"Volume (ml)", min_value=0.0, max_value=500.0, value=10.0, step=0.5, key=f"manual_vol_{i}")
+                    # Nilai input volume diubah jadi integer
+                    vol_terpilih = st.number_input(f"Volume (ml)", min_value=0, max_value=500, value=10, step=1, key=f"manual_vol_{i}")
                 
                 harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == bahan_terpilih]["Harga per ml (Rp)"].values[0]
                 
@@ -254,7 +252,6 @@ with tab1:
                     "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_terpilih * harga_per_ml
                 })
 
-        # PROSES KALKULASI AKHIR
         df_racikan = pd.DataFrame(racikan_user)
         total_volume_cairan = df_racikan["Volume (ml)"].sum()
         total_biaya_cairan = df_racikan["Subtotal (Rp)"].sum()
@@ -265,7 +262,6 @@ with tab1:
         rasio_bibit_pct = (vol_bibit_real / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
         rasio_pelarut_pct = (vol_pelarut_real / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
 
-        # ==================== SEKSI ANALISIS AROMA AI ====================
         st.markdown("---")
         st.header("🧠 AI Olfactory Profile Analysis")
         
@@ -295,15 +291,15 @@ with tab1:
         else:
             st.info("💡 **Tips AI:** Agar profil aroma muncul otomatis, pastikan nama bibit mengandung kategori aroma (*Floral, Woody, Fruity, Aquatic, Citrus, Gourmand, atau Oriental*).")
 
-        if rasio_bibit_otomatis is not None and abs(total_volume_cairan - target_volume) > 0.01:
-            st.warning(f"⚠️ Perhatian: Total volume campuran saat ini ({total_volume_cairan:.1f} ml) tidak sama dengan target volume botol yang Anda tentukan ({target_volume} ml). Harap sesuaikan angka ml di atas agar pas.")
+        if rasio_bibit_otomatis is not None and abs(total_volume_cairan - target_volume) > 0:
+            st.warning(f"⚠️ Perhatian: Total volume campuran saat ini ({total_volume_cairan} ml) tidak sama dengan target volume botol yang Anda tentukan ({target_volume} ml). Harap sesuaikan angka ml di atas agar pas.")
 
-        # Ringkasan Keuangan HPP
         st.markdown("---")
         st.subheader(f"📊 Ringkasan Finansial & Rasio: {nama_varian}")
         
         m1, m2, m3 = st.columns(3)
-        m1.metric("Total Volume Cairan", f"{total_volume_cairan:.1f} ml")
+        # Menghapus .0 desimal pada ringkasan volume cairan
+        m1.metric("Total Volume Cairan", f"{int(total_volume_cairan)} ml")
         m2.metric("Rasio (Bibit : Pelarut)", f"{rasio_bibit_pct:.0f}% : {rasio_pelarut_pct:.0f}%")
         st.metric("💰 TOTAL HPP PER BOTOL", f"Rp {total_hpp_produk:,.0f}")
 
@@ -321,10 +317,8 @@ with tab2:
     
     with col_inv1:
         st.subheader("1. Daftar Bibit & Pelarut")
-        # Menampilkan Data Editor Interaktif
         df_tampil_bahan = pd.DataFrame(st.session_state.inventaris_bahan)
         
-        # Konfigurasi kolom agar lebih rapi saat diedit
         config_kolom_bahan = {
             "Tipe": st.column_config.SelectboxColumn(
                 "Tipe", options=["Bibit", "Pelarut"], required=True
@@ -339,12 +333,11 @@ with tab2:
         
         edited_bahan = st.data_editor(
             df_tampil_bahan,
-            num_rows="dynamic", # Memungkinkan penambahan dan penghapusan baris
+            num_rows="dynamic",
             use_container_width=True,
             column_config=config_kolom_bahan,
             key="editor_bahan"
         )
-        # Simpan perubahan secara otomatis
         st.session_state.inventaris_bahan = edited_bahan.to_dict('records')
 
     with col_inv2:
@@ -359,10 +352,9 @@ with tab2:
         
         edited_kemasan = st.data_editor(
             df_tampil_kemasan,
-            num_rows="dynamic", # Memungkinkan penambahan dan penghapusan baris
+            num_rows="dynamic",
             use_container_width=True,
             column_config=config_kolom_kemasan,
             key="editor_kemasan"
         )
-        # Simpan perubahan secara otomatis
         st.session_state.inventaris_kemasan = edited_kemasan.to_dict('records')
