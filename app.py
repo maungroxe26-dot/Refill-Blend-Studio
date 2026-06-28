@@ -8,29 +8,105 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inisialisasi Database Sementara (Session State) jika belum ada
+# Database Karakter Kategori Aroma Universal (Standard Olfactive Families)
+DATABASE_AROMA_AI = {
+    "floral": {
+        "top": ["Rose", "Peony", "Freesia"],
+        "mid": ["Jasmine", "Lily of the Valley", "Magnolia"],
+        "base": ["White Musk", "Sandalwood", "Soft Amber"],
+        "vibe": "Anggun, Feminin, Klasik, dan Menyegarkan khas Bunga"
+    },
+    "woody": {
+        "top": ["Cedar Leaf", "Cypress", "Cardamom"],
+        "mid": ["Cedarwood", "Sandalwood", "Patchouli"],
+        "base": ["Vetiver", "Oakmoss", "Gaiac Wood"],
+        "vibe": "Hangat, Maskulin, Earthy, Tenang, dan Sangat Elegan"
+    },
+    "fruity": {
+        "top": ["Red Berries", "Green Apple", "Peach"],
+        "mid": ["Strawberry", "Blackcurrant", "Plum"],
+        "base": ["Vanilla", "Light Musk"],
+        "vibe": "Manis Buah, Ceria, Playful, Energetik, dan Segar"
+    },
+    "aquatic": {
+        "top": ["Sea Notes", "Mint", "Calone"],
+        "mid": ["Sea Salt", "Lavender", "Rosemary"],
+        "base": ["Ambergris", "White Musk", "Sage"],
+        "vibe": "Segar Nuansa Laut, Bersih, Sporty, Kasual, dan Ringan"
+    },
+    "citrus": {
+        "top": ["Bergamot", "Lemon", "Mandarin Orange"],
+        "mid": ["Grapefruit", "Orange Blossom", "Neroli"],
+        "base": ["Clearwood", "Light Musk"],
+        "vibe": "Sangat Segar, Tajam, Penuh Energi, Bersih, dan Terang"
+    },
+    "gourmand": {
+        "top": ["Caramel", "Whipped Cream"],
+        "mid": ["Vanilla Orchid", "Heliotrope", "Coconut"],
+        "base": ["Vanilla Bean", "Brown Sugar", "Amber"],
+        "vibe": "Manis Makanan, Hangat, Sangat Manis, Lembut, dan Cozy"
+    },
+    "oriental": {
+        "top": ["Saffron", "Cinnamon", "Pink Pepper"],
+        "mid": ["Amberwood", "Labdanum", "Clove"],
+        "base": ["Amber", "Oud", "Incense", "Tonka Bean"],
+        "vibe": "Mewah, Eksotis, Rempah Hangat, Deep, dan Tahan Lama"
+    }
+}
+
+def analisis_aroma_racikan(list_bahan_terpilih):
+    """Fungsi Engine AI Universal untuk mendeteksi karakter wangi dari keyword nama bahan"""
+    top_notes = set()
+    mid_notes = set()
+    base_notes = set()
+    vibes = set()
+    
+    terdeteksi = False
+    
+    for bahan in list_bahan_terpilih:
+        nama_bahan_lower = bahan.lower()
+        for kunci, data in DATABASE_AROMA_AI.items():
+            if kunci in nama_bahan_lower:
+                top_notes.update(data["top"])
+                mid_notes.update(data["mid"])
+                base_notes.update(data["base"])
+                vibes.add(data["vibe"])
+                terdeteksi = True
+                
+    if not terdeteksi:
+        return None
+        
+    return {
+        "top": list(top_notes),
+        "mid": list(mid_notes),
+        "base": list(base_notes),
+        "vibe": " & ".join(vibes)
+    }
+
+# Inisialisasi Database Umum bawaan aplikasi
 if 'inventaris_bahan' not in st.session_state:
     st.session_state.inventaris_bahan = [
-        {"Nama Bahan": "Searah Baccarat (Luzi)", "Tipe": "Bibit", "Harga per ml (Rp)": 1500},
-        {"Nama Bahan": "Vanilla Lace (Parfex)", "Tipe": "Bibit", "Harga per ml (Rp)": 2000},
-        {"Nama Bahan": "Citrus Fresh (Iberchem)", "Tipe": "Bibit", "Harga per ml (Rp)": 1200},
-        {"Nama Bahan": "Absolute Alkohol", "Tipe": "Pelarut", "Harga per ml (Rp)": 100},
-        {"Nama Bahan": "Fixative Premium", "Tipe": "Pelarut", "Harga per ml (Rp)": 600},
+        {"Nama Bahan": "Bibit Sweet Vanilla (Gourmand)", "Tipe": "Bibit", "Harga per ml (Rp)": 1800},
+        {"Nama Bahan": "Bibit Bergamot Fresh (Citrus)", "Tipe": "Bibit", "Harga per ml (Rp)": 1500},
+        {"Nama Bahan": "Bibit Rose Jasmine (Floral)", "Tipe": "Bibit", "Harga per ml (Rp)": 2000},
+        {"Nama Bahan": "Bibit Sandalwood (Woody)", "Tipe": "Bibit", "Harga per ml (Rp)": 2200},
+        {"Nama Bahan": "Absolute Alkohol (Pelarut)", "Tipe": "Pelarut", "Harga per ml (Rp)": 100},
+        {"Nama Bahan": "Fixative Pengawet (Aditif)", "Tipe": "Pelarut", "Harga per ml (Rp)": 600},
     ]
 
 if 'inventaris_kemasan' not in st.session_state:
     st.session_state.inventaris_kemasan = [
-        {"Nama Kemasan": "Botol Spray 30ml + Stiker", "Harga Satuan (Rp)": 7000},
-        {"Nama Kemasan": "Botol Spray 50ml + Stiker + Box", "Harga Satuan (Rp)": 10000},
+        {"Nama Kemasan": "Botol Spray Standar 30ml", "Harga Satuan (Rp)": 5000},
+        {"Nama Kemasan": "Botol Spray Premium 50ml", "Harga Satuan (Rp)": 8000},
     ]
 
 # Header Aplikasi
 st.title("🧪 Refill Blend Studio")
-st.caption("Aplikasi Kalkulator Formula & HPP khusus Parfum Refill / Fragrance Oil Blending")
+st.caption("Kalkulator Formula, HPP, dan Simulasi Karakter Aroma Universal untuk Industri Parfum Refill")
 st.markdown("---")
 
 # Menu Navigasi Tab
-tab1, tab2 = st.tabs(["🧮 Kalkulator Formula & HPP", "📦 Kelola Inventaris Bahan"])
+tab1, tab2 = st.tabs(["🧮 Kalkulator & Analisis AI", "📦 Kelola Inventaris Bahan"])
 
 # ==================== TAB 1: KALKULATOR FORMULA ====================
 with tab1:
@@ -39,7 +115,7 @@ with tab1:
     # Input Data Dasar Varian
     col_var1, col_var2 = st.columns(2)
     with col_var1:
-        nama_varian = st.text_input("Nama Varian Parfum", value="Varian Nova")
+        nama_varian = st.text_input("Nama Varian / Kode Racikan", value="Racikan No. 01")
     with col_var2:
         df_kemasan = pd.DataFrame(st.session_state.inventaris_kemasan)
         pilihan_kemasan = st.selectbox("Pilih Botol & Kemasan", df_kemasan["Nama Kemasan"].tolist())
@@ -47,13 +123,11 @@ with tab1:
 
     st.markdown("---")
     st.subheader("💡 Panduan & Pengaturan Konsentrasi Otomatis")
-    st.write("Pilih tipe konsentrasi dan tentukan total target volume parfum yang ingin dibuat.")
-
-    # Pilihan Konsentrasi Otomatis beserta standar rasio bibitnya untuk parfum refill
+    
     opsi_konsentrasi = {
-        "EDP (Eau de Parfum) - Awet & Standar Toko Refill [Rasio Bibit 50%]": 0.50,
-        "Extrait de Parfum - Sangat Pekat & Tahan Lama [Rasio Bibit 70%]": 0.70,
-        "Custom (Atur Manual Komposisi di Bawah)": None
+        "EDP (Eau de Parfum) - Standar Toko Refill [Rasio Bibit 50%]" : 0.50,
+        "Extrait de Parfum - Super Pekat & Tahan Lama [Rasio Bibit 70%]": 0.70,
+        "Custom (Atur Manual Komposisi Bebas)": None
     }
     
     pilihan_tipe = st.selectbox("Pilih Tipe Konsentrasi", list(opsi_konsentrasi.keys()))
@@ -63,7 +137,6 @@ with tab1:
     with col_vol1:
         target_volume = st.number_input("Target Total Volume Parfum (ml)", min_value=5.0, max_value=500.0, value=30.0, step=5.0)
 
-    # Filter bahan berdasarkan tipe untuk mempermudah kalkulator otomatis
     df_bahan = pd.DataFrame(st.session_state.inventaris_bahan)
     list_bibit = df_bahan[df_bahan["Tipe"] == "Bibit"]["Nama Bahan"].tolist()
     list_pelarut = df_bahan[df_bahan["Tipe"] == "Pelarut"]["Nama Bahan"].tolist()
@@ -72,28 +145,25 @@ with tab1:
     st.subheader("🧪 Komposisi Campuran Cairan")
 
     racikan_user = []
+    nama_bibit_terpakai = []
 
-    # LOGIKA 1: JIKA MEMILIH EDP ATAU EXTRAIT (OTOMATIS)
+    # LOGIKA MODE OTOMATIS
     if rasio_bibit_otomatis is not None:
-        st.success(f"Mode Otomatis Aktif! Sistem mengunci rasio untuk tipe: {pilihan_tipe}")
-        
-        # Hitung jatah ml masing-masing kelompok
+        st.success(f"Mode Otomatis Aktif! Rasio dikunci untuk: {pilihan_tipe}")
         ml_bibit_total = target_volume * rasio_bibit_otomatis
         ml_pelarut_total = target_volume * (1.0 - rasio_bibit_otomatis)
 
         col_auto1, col_auto2 = st.columns(2)
         with col_auto1:
             st.write(f"**Alokasi Bibit Parfum (Total: {ml_bibit_total:.1f} ml):**")
-            # Pengguna bisa melakukan layering bibit (misal dicampur 2 jenis bibit)
             jumlah_layer_bibit = st.number_input("Berapa jenis bibit parfum yang dicampur? (Layering)", min_value=1, max_value=5, value=1, key="count_bibit")
-            
-            # Bagi rata volume bibit awal sebagai rekomendasi awal
             vol_per_bibit = ml_bibit_total / jumlah_layer_bibit
             
             for i in range(int(jumlah_layer_bibit)):
                 col_sub1, col_sub2 = st.columns([2, 1])
                 with col_sub1:
                     bibit_pilihan = st.selectbox(f"Pilih Bibit {i+1}", list_bibit, key=f"auto_bibit_{i}")
+                    nama_bibit_terpakai.append(bibit_pilihan)
                 with col_sub2:
                     vol_bibit = st.number_input(f"Volume (ml)", min_value=0.0, max_value=target_volume, value=vol_per_bibit, step=0.5, key=f"auto_vol_bibit_{i}")
                 
@@ -104,9 +174,8 @@ with tab1:
                 })
 
         with col_auto2:
-            st.write(f"**Alokasi Pelarut / Absolute (Total: {ml_pelarut_total:.1f} ml):**")
-            jumlah_layer_pelarut = st.number_input("Berapa jenis pelarut yang digunakan? (Misal: Absolute + Fixative)", min_value=1, max_value=3, value=1, key="count_pelarut")
-            
+            st.write(f"**Alokasi Pelarut / Campuran (Total: {ml_pelarut_total:.1f} ml):**")
+            jumlah_layer_pelarut = st.number_input("Berapa jenis cairan pelarut yang digunakan?", min_value=1, max_value=3, value=1, key="count_pelarut")
             vol_per_pelarut = ml_pelarut_total / jumlah_layer_pelarut
             
             for j in range(int(jumlah_layer_pelarut)):
@@ -122,7 +191,7 @@ with tab1:
                     "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_pelarut * harga_per_ml
                 })
 
-    # LOGIKA 2: JIKA MEMILIH CUSTOM (MANUAL SEPERTI VERSI SEBELUMNYA)
+    # LOGIKA MODE CUSTOM/MANUAL
     else:
         st.info("Mode Manual Aktif. Silakan masukkan bahan dan volume secara bebas.")
         list_nama_all = df_bahan["Nama Bahan"].tolist()
@@ -133,6 +202,8 @@ with tab1:
             with col_b1:
                 idx_default = min(i, len(list_nama_all)-1)
                 bahan_terpilih = st.selectbox(f"Bahan {i+1}", list_nama_all, key=f"manual_bahan_{i}", index=idx_default)
+                if df_bahan[df_bahan["Nama Bahan"] == bahan_terpilih]["Tipe"].values[0] == "Bibit":
+                    nama_bibit_terpakai.append(bahan_terpilih)
             with col_b2:
                 vol_terpilih = st.number_input(f"Volume (ml)", min_value=0.0, max_value=500.0, value=10.0, step=0.5, key=f"manual_vol_{i}")
             
@@ -144,7 +215,7 @@ with tab1:
                 "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_terpilih * harga_per_ml
             })
 
-    # ==================== PROSES PERHITUNGAN AKHIR ====================
+    # PROSES KALKULASI AKHIR
     df_racikan = pd.DataFrame(racikan_user)
     total_volume_cairan = df_racikan["Volume (ml)"].sum()
     total_biaya_cairan = df_racikan["Subtotal (Rp)"].sum()
@@ -152,44 +223,61 @@ with tab1:
 
     vol_bibit_real = df_racikan[df_racikan["Tipe"] == "Bibit"]["Volume (ml)"].sum()
     vol_pelarut_real = df_racikan[df_racikan["Tipe"] == "Pelarut"]["Volume (ml)"].sum()
-    
     rasio_bibit_pct = (vol_bibit_real / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
     rasio_pelarut_pct = (vol_pelarut_real / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
 
-    # Peringatan Validasi jika di mode otomatis tapi total ml diubah manual oleh user hingga tidak pas
-    if rasio_bibit_otomatis is not None and abs(total_volume_cairan - target_volume) > 0.01:
-        st.warning(f"⚠️ Perhatian: Total volume campuran saat ini ({total_volume_cairan:.1f} ml) tidak sama dengan target volume botol yang Anda tentukan ({target_volume} ml). Harap sesuaikan angka ml di atas agar pas.")
-
+    # ==================== SEKSI ANALISIS AROMA AI (UNIVERSAL) ====================
     st.markdown("---")
-    st.subheader(f"📊 Hasil Analisis Ringkasan: {nama_varian}")
+    st.header("🧠 AI Olfactory Profile Analysis")
     
-    # Ringkasan Metrics
+    hasil_analisis = analisis_aroma_racikan(nama_bibit_terpakai)
+    
+    if hasil_analisis and vol_bibit_real > 0:
+        st.subheader(f"✨ Karakter Utama Campuran: *{hasil_analisis['vibe']}*")
+        
+        # Tampilan Tiga Struktur Piramida Wangi
+        col_ai1, col_ai2, col_ai3 = st.columns(3)
+        with col_ai1:
+            st.markdown("🟢 **Top Notes (Kesan Pertama - 15 Menit Pertama)**")
+            for note in hasil_analisis["top"]:
+                st.markdown(f"- {note}")
+        with col_ai2:
+            st.markdown("🟡 **Mid/Heart Notes (Inti Wangi - 15 Menit s/d 4 Jam)**")
+            for note in hasil_analisis["mid"]:
+                st.markdown(f"- {note}")
+        with col_ai3:
+            st.markdown("🔴 **Base Notes (Daya Tahan Akhir - Di atas 4 Jam)**")
+            for note in hasil_analisis["base"]:
+                st.markdown(f"- {note}")
+    else:
+        st.info("💡 **Tips AI:** Agar profil aroma muncul otomatis, pastikan nama bibit parfum yang dimasukkan ke inventaris mengandung salah satu kata kunci kategori ini: *Floral, Woody, Fruity, Aquatic, Citrus, Gourmand, atau Oriental*.")
+
+    # Ringkasan Keuangan HPP
+    st.markdown("---")
+    st.subheader(f"📊 Ringkasan Finansial & Rasio: {nama_varian}")
+    
     m1, m2, m3 = st.columns(3)
     m1.metric("Total Volume Cairan", f"{total_volume_cairan:.1f} ml")
-    m2.metric("Rasio Nyata (Bibit : Pelarut)", f"{rasio_bibit_pct:.0f}% : {rasio_pelarut_pct:.0f}%")
+    m2.metric("Rasio Pencampuran (Bibit : Pelarut)", f"{rasio_bibit_pct:.0f}% : {rasio_pelarut_pct:.0f}%")
     st.metric("💰 TOTAL HPP PER BOTOL", f"Rp {total_hpp_produk:,.0f}")
 
-    # Tabel Rincian Biaya
     st.write("**Rincian Komposisi Biaya:**")
     st.dataframe(df_racikan[["Nama Bahan", "Tipe", "Volume (ml)", "Subtotal (Rp)"]], use_container_width=True)
-    
     st.write(f"- Biaya Wadah/Kemasan ({pilihan_kemasan}): **Rp {harga_kemasan:,}**")
-    st.write(f"- Total Biaya Essens Cairan: **Rp {total_biaya_cairan:,}**")
+    st.write(f"- Total Biaya Cairan Esens: **Rp {total_biaya_cairan:,}**")
 
 # ==================== TAB 2: KELOLA INVENTARIS ====================
 with tab2:
     st.header("Manajemen Inventaris Bahan & Harga")
-    
     col_inv1, col_inv2 = st.columns(2)
     
     with col_inv1:
         st.subheader("1. Daftar Bibit & Pelarut")
         st.dataframe(pd.DataFrame(st.session_state.inventaris_bahan), use_container_width=True)
         
-        # Form Tambah Bahan
         with st.expander("➕ Tambah Bahan Baru"):
             with st.form("form_bahan"):
-                new_nama = st.text_input("Nama Bahan (Contoh: Macallan / DPG)")
+                new_nama = st.text_input("Nama Bahan (Contoh: Bibit Lavender Lemon (Citrus-Floral) )")
                 new_tipe = st.selectbox("Tipe Bahan", ["Bibit", "Pelarut"])
                 new_harga = st.number_input("Harga per ml (Rp)", min_value=1, value=1000)
                 submit_bahan = st.form_submit_button("Simpan Bahan")
@@ -204,10 +292,9 @@ with tab2:
         st.subheader("2. Daftar Botol & Kemasan")
         st.dataframe(pd.DataFrame(st.session_state.inventaris_kemasan), use_container_width=True)
         
-        # Form Tambah Kemasan
         with st.expander("➕ Tambah Kemasan Baru"):
             with st.form("form_kemasan"):
-                new_kemasan_nama = st.text_input("Nama Kemasan (Contoh: Botol Roll-on 10ml)")
+                new_kemasan_nama = st.text_input("Nama Kemasan (Contoh: Botol Roll On Lusinan)")
                 new_kemasan_harga = st.number_input("Harga Satuan (Rp)", min_value=1, value=5000)
                 submit_kemasan = st.form_submit_button("Simpan Kemasan")
                 if submit_kemasan and new_kemasan_nama:
