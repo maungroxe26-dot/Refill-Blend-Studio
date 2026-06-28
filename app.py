@@ -45,51 +45,120 @@ with tab1:
         pilihan_kemasan = st.selectbox("Pilih Botol & Kemasan", df_kemasan["Nama Kemasan"].tolist())
         harga_kemasan = df_kemasan[df_kemasan["Nama Kemasan"] == pilihan_kemasan]["Harga Satuan (Rp)"].values[0]
 
-    st.subheader("Komposisi Cairan")
-    st.info("Pilih bahan dari inventaris dan tentukan volume (ml) yang digunakan.")
+    st.markdown("---")
+    st.subheader("💡 Panduan & Pengaturan Konsentrasi Otomatis")
+    st.write("Pilih tipe konsentrasi dan tentukan total target volume parfum yang ingin dibuat.")
 
-    # List pilihan bahan dari inventaris
+    # Pilihan Konsentrasi Otomatis beserta standar rasio bibitnya untuk parfum refill
+    opsi_konsentrasi = {
+        "EDP (Eau de Parfum) - Awet & Standar Toko Refill [Rasio Bibit 50%]": 0.50,
+        "Extrait de Parfum - Sangat Pekat & Tahan Lama [Rasio Bibit 70%]": 0.70,
+        "Custom (Atur Manual Komposisi di Bawah)": None
+    }
+    
+    pilihan_tipe = st.selectbox("Pilih Tipe Konsentrasi", list(opsi_konsentrasi.keys()))
+    rasio_bibit_otomatis = opsi_konsentrasi[pilihan_tipe]
+
+    col_vol1, col_vol2 = st.columns(2)
+    with col_vol1:
+        target_volume = st.number_input("Target Total Volume Parfum (ml)", min_value=5.0, max_value=500.0, value=30.0, step=5.0)
+
+    # Filter bahan berdasarkan tipe untuk mempermudah kalkulator otomatis
     df_bahan = pd.DataFrame(st.session_state.inventaris_bahan)
-    list_nama_bahan = df_bahan["Nama Bahan"].tolist()
+    list_bibit = df_bahan[df_bahan["Tipe"] == "Bibit"]["Nama Bahan"].tolist()
+    list_pelarut = df_bahan[df_bahan["Tipe"] == "Pelarut"]["Nama Bahan"].tolist()
 
-    # Dynamic inputs menggunakan kontainer
-    jumlah_bahan = st.number_input("Jumlah jenis bahan yang dicampur", min_value=1, max_value=10, value=3)
-    
+    st.markdown("---")
+    st.subheader("🧪 Komposisi Campuran Cairan")
+
     racikan_user = []
-    
-    # Tampilkan baris input dinamis
-    for i in range(int(jumlah_bahan)):
-        col_b1, col_b2 = st.columns([3, 1])
-        with col_b1:
-            idx_default = min(i, len(list_nama_bahan)-1)
-            bahan_terpilih = st.selectbox(f"Bahan {i+1}", list_nama_bahan, key=f"bahan_{i}", index=idx_default)
-        with col_b2:
-            vol_terpilih = st.number_input(f"Volume (ml)", min_value=0.0, max_value=500.0, value=10.0, step=0.5, key=f"vol_{i}")
-        
-        # Ambil harga per ml dari inventaris
-        harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == bahan_terpilih]["Harga per ml (Rp)"].values[0]
-        tipe_bahan = df_bahan[df_bahan["Nama Bahan"] == bahan_terpilih]["Tipe"].values[0]
-        
-        racikan_user.append({
-            "Nama Bahan": bahan_terpilih,
-            "Tipe": tipe_bahan,
-            "Volume (ml)": vol_terpilih,
-            "Harga/ml": harga_per_ml,
-            "Subtotal (Rp)": vol_terpilih * harga_per_ml
-        })
 
-    # Perhitungan Total
+    # LOGIKA 1: JIKA MEMILIH EDP ATAU EXTRAIT (OTOMATIS)
+    if rasio_bibit_otomatis is not None:
+        st.success(f"Mode Otomatis Aktif! Sistem mengunci rasio untuk tipe: {pilihan_tipe}")
+        
+        # Hitung jatah ml masing-masing kelompok
+        ml_bibit_total = target_volume * rasio_bibit_otomatis
+        ml_pelarut_total = target_volume * (1.0 - rasio_bibit_otomatis)
+
+        col_auto1, col_auto2 = st.columns(2)
+        with col_auto1:
+            st.write(f"**Alokasi Bibit Parfum (Total: {ml_bibit_total:.1f} ml):**")
+            # Pengguna bisa melakukan layering bibit (misal dicampur 2 jenis bibit)
+            jumlah_layer_bibit = st.number_input("Berapa jenis bibit parfum yang dicampur? (Layering)", min_value=1, max_value=5, value=1, key="count_bibit")
+            
+            # Bagi rata volume bibit awal sebagai rekomendasi awal
+            vol_per_bibit = ml_bibit_total / jumlah_layer_bibit
+            
+            for i in range(int(jumlah_layer_bibit)):
+                col_sub1, col_sub2 = st.columns([2, 1])
+                with col_sub1:
+                    bibit_pilihan = st.selectbox(f"Pilih Bibit {i+1}", list_bibit, key=f"auto_bibit_{i}")
+                with col_sub2:
+                    vol_bibit = st.number_input(f"Volume (ml)", min_value=0.0, max_value=target_volume, value=vol_per_bibit, step=0.5, key=f"auto_vol_bibit_{i}")
+                
+                harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == bibit_pilihan]["Harga per ml (Rp)"].values[0]
+                racikan_user.append({
+                    "Nama Bahan": bibit_pilihan, "Tipe": "Bibit", "Volume (ml)": vol_bibit,
+                    "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_bibit * harga_per_ml
+                })
+
+        with col_auto2:
+            st.write(f"**Alokasi Pelarut / Absolute (Total: {ml_pelarut_total:.1f} ml):**")
+            jumlah_layer_pelarut = st.number_input("Berapa jenis pelarut yang digunakan? (Misal: Absolute + Fixative)", min_value=1, max_value=3, value=1, key="count_pelarut")
+            
+            vol_per_pelarut = ml_pelarut_total / jumlah_layer_pelarut
+            
+            for j in range(int(jumlah_layer_pelarut)):
+                col_sub3, col_sub4 = st.columns([2, 1])
+                with col_sub3:
+                    pelarut_pilihan = st.selectbox(f"Pilih Pelarut {j+1}", list_pelarut, key=f"auto_pelarut_{j}")
+                with col_sub4:
+                    vol_pelarut = st.number_input(f"Volume (ml)", min_value=0.0, max_value=target_volume, value=vol_per_pelarut, step=0.5, key=f"auto_vol_pelarut_{j}")
+                
+                harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == pelarut_pilihan]["Harga per ml (Rp)"].values[0]
+                racikan_user.append({
+                    "Nama Bahan": pelarut_pilihan, "Tipe": "Pelarut", "Volume (ml)": vol_pelarut,
+                    "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_pelarut * harga_per_ml
+                })
+
+    # LOGIKA 2: JIKA MEMILIH CUSTOM (MANUAL SEPERTI VERSI SEBELUMNYA)
+    else:
+        st.info("Mode Manual Aktif. Silakan masukkan bahan dan volume secara bebas.")
+        list_nama_all = df_bahan["Nama Bahan"].tolist()
+        jumlah_bahan = st.number_input("Jumlah jenis bahan yang dicampur", min_value=1, max_value=10, value=3)
+        
+        for i in range(int(jumlah_bahan)):
+            col_b1, col_b2 = st.columns([3, 1])
+            with col_b1:
+                idx_default = min(i, len(list_nama_all)-1)
+                bahan_terpilih = st.selectbox(f"Bahan {i+1}", list_nama_all, key=f"manual_bahan_{i}", index=idx_default)
+            with col_b2:
+                vol_terpilih = st.number_input(f"Volume (ml)", min_value=0.0, max_value=500.0, value=10.0, step=0.5, key=f"manual_vol_{i}")
+            
+            harga_per_ml = df_bahan[df_bahan["Nama Bahan"] == bahan_terpilih]["Harga per ml (Rp)"].values[0]
+            tipe_bahan = df_bahan[df_bahan["Nama Bahan"] == bahan_terpilih]["Tipe"].values[0]
+            
+            racikan_user.append({
+                "Nama Bahan": bahan_terpilih, "Tipe": tipe_bahan, "Volume (ml)": vol_terpilih,
+                "Harga/ml": harga_per_ml, "Subtotal (Rp)": vol_terpilih * harga_per_ml
+            })
+
+    # ==================== PROSES PERHITUNGAN AKHIR ====================
     df_racikan = pd.DataFrame(racikan_user)
     total_volume_cairan = df_racikan["Volume (ml)"].sum()
     total_biaya_cairan = df_racikan["Subtotal (Rp)"].sum()
     total_hpp_produk = total_biaya_cairan + harga_kemasan
 
-    # Menghitung persentase rasio bibit vs pelarut
-    vol_bibit = df_racikan[df_racikan["Tipe"] == "Bibit"]["Volume (ml)"].sum()
-    vol_pelarut = df_racikan[df_racikan["Tipe"] == "Pelarut"]["Volume (ml)"].sum()
+    vol_bibit_real = df_racikan[df_racikan["Tipe"] == "Bibit"]["Volume (ml)"].sum()
+    vol_pelarut_real = df_racikan[df_racikan["Tipe"] == "Pelarut"]["Volume (ml)"].sum()
     
-    rasio_bibit_pct = (vol_bibit / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
-    rasio_pelarut_pct = (vol_pelarut / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
+    rasio_bibit_pct = (vol_bibit_real / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
+    rasio_pelarut_pct = (vol_pelarut_real / total_volume_cairan * 100) if total_volume_cairan > 0 else 0
+
+    # Peringatan Validasi jika di mode otomatis tapi total ml diubah manual oleh user hingga tidak pas
+    if rasio_bibit_otomatis is not None and abs(total_volume_cairan - target_volume) > 0.01:
+        st.warning(f"⚠️ Perhatian: Total volume campuran saat ini ({total_volume_cairan:.1f} ml) tidak sama dengan target volume botol yang Anda tentukan ({target_volume} ml). Harap sesuaikan angka ml di atas agar pas.")
 
     st.markdown("---")
     st.subheader(f"📊 Hasil Analisis Ringkasan: {nama_varian}")
@@ -97,7 +166,7 @@ with tab1:
     # Ringkasan Metrics
     m1, m2, m3 = st.columns(3)
     m1.metric("Total Volume Cairan", f"{total_volume_cairan:.1f} ml")
-    m2.metric("Rasio Komposisi (Bibit : Pelarut)", f"{rasio_bibit_pct:.0f}% : {rasio_pelarut_pct:.0f}%")
+    m2.metric("Rasio Nyata (Bibit : Pelarut)", f"{rasio_bibit_pct:.0f}% : {rasio_pelarut_pct:.0f}%")
     st.metric("💰 TOTAL HPP PER BOTOL", f"Rp {total_hpp_produk:,.0f}")
 
     # Tabel Rincian Biaya
